@@ -4,13 +4,13 @@ CREATE TABLE ticks (
     price DOUBLE PRECISION,
     quantity DOUBLE PRECISION,
     timestamp TIMESTAMP,
-    PRIMARY KEY (symbol, timestamp)
+    PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_tick_symbol_timestamp_desc ON tick(symbol, timestamp DESC);
-CREATE INDEX idx_tick_timestamp ON tick(timestamp);
-CREATE INDEX idx_tick_price ON tick(price);
-CREATE INDEX idx_tick_quantity ON tick(quantity);
+CREATE INDEX idx_tick_symbol_timestamp_desc ON ticks(symbol, timestamp DESC);
+CREATE INDEX idx_tick_timestamp ON ticks(timestamp);
+CREATE INDEX idx_tick_price ON ticks(price);
+CREATE INDEX idx_tick_quantity ON ticks(quantity);
 
 CREATE TABLE ohlcs (
     id uuid DEFAULT gen_random_uuid(),
@@ -22,9 +22,9 @@ CREATE TABLE ohlcs (
     volume DOUBLE PRECISION,
     open_time TIMESTAMP,
     close_time TIMESTAMP,
-    PRIMARY KEY (symbol, open_time)
+    PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_ohlc_symbol_open_time_desc ON ohlc(symbol, open_time DESC);
-CREATE INDEX idx_ohlc_close_time ON ohlc(close_time);
-CREATE INDEX idx_ohlc_volume ON ohlc(volume);
+CREATE INDEX idx_ohlc_symbol_open_time_desc ON ohlcs(symbol, open_time DESC);
+CREATE INDEX idx_ohlc_close_time ON ohlcs(close_time);
+CREATE INDEX idx_ohlc_volume ON ohlcs(volume);

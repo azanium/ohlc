@@ -1,24 +1,5 @@
 # OHLC Trading Chart Service
 
-## Project Structure
-
-```markdown
-.
-├── cmd/                    # Application entry points
-│   └── ohlc/              # Main service executable
-├── internal/              # Private application code
-│   ├── binance/           # Binance API client
-│   ├── candlestick/       # OHLC data processing
-│   ├── storage/           # Data persistence layer
-│   └── streaming/         # gRPC streaming service
-├── pkg/                   # Public libraries
-├── proto/                 # Protocol buffer definitions
-├── deployments/           # Kubernetes and deployment configs
-│   ├── helm/              # Helm charts
-│   └── terraform/         # Terraform configurations
-└── test/                  # Integration and e2e tests
-```
-
 ## Prerequisites
 
 - Go 1.21 or later
@@ -29,6 +10,81 @@
 - SQLite3
 - kubectl
 - doctl (DigitalOcean CLI)
+
+## Local Development Setup
+
+### Getting Started
+
+1. Clone the repository and navigate to the project directory
+
+2. Start the development environment (PostgreSQL and OHLC service):
+
+   ```bash
+   make run_dev
+   ```
+
+   This command will:
+   - Build and start PostgreSQL container
+   - Initialize the database with required schema
+   - Build and start the OHLC service
+
+3. Test the streaming functionality using the stream client:
+
+   ```bash
+   go run cmd/client/stream_client.go
+   ```
+
+   The stream client will connect to the OHLC service and start receiving real-time candlestick data.
+
+   And you will see the candlestick data being streamed in real-time.
+
+```bash
+   [ETHUSDT] 16:52:00 - Open: 1570.27, High: 1571.34, Low: 1569.35, Close: 1570.89, Volume: 123.90 (Period: 16:52:00 - 16:53:00)
+   [BTCUSDT] 16:52:00 - Open: 83714.68, High: 83714.68, Low: 83674.00, Close: 83695.09, Volume: 5.01 (Period: 16:52:00 - 16:53:00)
+   [BTCUSDT] 16:53:00 - Open: 83695.10, High: 83696.66, Low: 83664.04, Close: 83664.05, Volume: 6.37 (Period: 16:53:00 - 16:54:00) (Interval: 1m0s)
+   [ETHUSDT] 16:53:00 - Open: 1570.89, High: 1571.50, Low: 1570.75, Close: 1570.82, Volume: 120.54 (Period: 16:53:00 - 16:54:00) (Interval: 1m0s)
+```
+
+### Troubleshooting
+
+- If the service fails to connect to PostgreSQL, ensure the database is healthy:
+
+  ```bash
+  docker-compose ps
+  ```
+
+- Check service logs:
+
+  ```bash
+  docker-compose logs ohlc
+  ```
+
+## Project Structure
+
+```markdown
+.
+├── cmd/                    # Application entry points
+│   ├── client/            # Stream client implementation
+│   ├── ohlc/              # Main service executable
+│   └── sample/            # Sample code for binance WebSocket client
+├── conf/                  # Configuration files
+│   ├── dev/              # Development environment configs
+│   ├── staging/          # Staging environment configs
+│   └── production/       # Production environment configs
+├── db/                    # Database related files
+│   └── schema.sql        # Database schema definitions
+├── deployments/           # Deployment configurations
+│   ├── helm/             # Helm charts for Kubernetes
+│   └── terraform/        # Infrastructure as code
+├── internal/              # Private application code
+│   ├── binance/          # Binance WebSocket client
+│   ├── candlestick/      # OHLC data processing and aggregation
+│   ├── proto/            # Internal protobuf implementations
+│   ├── service/          # Core service implementation
+│   ├── storage/          # Data persistence layer
+│   └── streaming/        # gRPC streaming service
+└── proto/                # Protocol buffer definitions
+```
 
 ## Deployment Guide
 
@@ -156,3 +212,9 @@ kubectl logs -f deployment/ohlc -n ohlc
 # Check PostgreSQL status
 kubectl exec -it deployment/postgres -n ohlc -- psql -U ohlc -d ohlc
 ```
+
+## Contact
+
+For support, bug reports, or contributions:
+
+syuaibi [at] gmail [dot] com

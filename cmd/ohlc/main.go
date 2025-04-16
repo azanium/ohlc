@@ -42,7 +42,7 @@ func main() {
 			candlestick.ETHUSDT,
 			candlestick.PEPEUSDT,
 		},
-		Interval:       10 * time.Second,
+		Interval:       time.Minute,
 		StorageDSN:     dsn,
 		MaxSubscribers: 100,
 		ChannelSize:    1000,
