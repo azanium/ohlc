@@ -1,0 +1,28 @@
+server:
+  service: ""
+  address: ":8080"
+  log_level: info
+  log_file_name: "log/kitex.log"
+  log_max_size: 10
+  log_max_age: 3
+  log_max_backups: 50
+
+postgres:
+  max_open_conns: 100
+  max_idle_conns: 100
+  max_retry: 1
+  conn_max_lifetime: 1800
+  master:
+    address: "localhost"
+    database: "ohlc"
+    ssl_mode: "disable"
+    port: 5432
+    username: "demo"
+    password: "demo123"
+  Follower:
+    address: "localhost"
+    database: "ohlc"
+    ssl_mode: "disable"
+    port: 5432
+    username: "demo"
+    password: "demo123"  # This should not be here, use KMS or something alike, just for the sake of testing and simplicity, it is here

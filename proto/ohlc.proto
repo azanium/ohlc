@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ohlc;
+
+option go_package = "github.com/azanium/ohlc/proto";
+
+// OHLCService provides streaming candlestick data
+service OHLCService {
+  // StreamOHLC streams real-time OHLC updates for requested symbols
+  rpc StreamOHLC(SubscribeRequest) returns (stream OHLCData) {}
+}
+
+// SubscribeRequest specifies which symbols to subscribe to
+message SubscribeRequest {
+  repeated string symbols = 1;
+}
+
+// OHLCData represents a single OHLC candlestick
+message OHLCData {
+  string symbol = 1;
+  double open = 2;
+  double high = 3;
+  double low = 4;
+  double close = 5;
+  double volume = 6;
+  int64 open_time = 7;  // Unix timestamp in milliseconds
+  int64 close_time = 8; // Unix timestamp in milliseconds
+}
