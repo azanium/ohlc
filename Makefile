@@ -6,11 +6,17 @@ PROTO_DIR=proto
 BIN_DIR=bin
 BIN_NAME=ohlc
 COVER_PROFILE=coverage.out
+DOCKER_NAME=azanium/ohlc:latest
 
 # Build the application
 build:
 	mkdir -p $(BIN_DIR)
 	$(GO) build -o $(BIN_DIR)/$(BIN_NAME) ./cmd/ohlc
+
+# Build the application in Docker
+build_docker:
+	docker build -t $(DOCKER_NAME) .
+	docker push $(DOCKER_NAME)
 
 # Run the application
 run:
