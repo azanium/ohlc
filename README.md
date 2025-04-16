@@ -19,6 +19,7 @@ A real-time OHLC (Open, High, Low, Close) trading chart service that streams cry
   - [Docker](#docker)
   - [Kubernetes Infrastructure Setup with Terraform](#kubernetes-infrastructure-setup-with-terraform)
   - [Install Service to Kubernetes Cluster](#install-service-to-kubernetes-cluster)
+  - [Testing the Stream Client](#testing-the-stream-client)
 - [Configuration](#configuration)
 - [Monitoring](#monitoring)
 - [Contact](#contact)
@@ -204,13 +205,43 @@ docker push your-repo/ohlc:latest
       -var="postgres_password=demo123"
    ```
 
+4. Save the Kubernetes cluster configuration:
+
+   ```bash
+   doctl kubernetes cluster kubeconfig save ohlc-cluster
+   ```
+
 ### Install Service to Kubernetes Cluster
+
+When you apply terraform, it will automatically install ohlc service to kubernetes cluster. But, if you want to change something, you can use helm to upgrade the service.
 
 Deploy to Kubernetes using Helm:
 Go to the project root directory!
 
 ```bash
-helm upgrade --install ohlc ./deployments/helm/ohlc
+helm upgrade --install ohlc ./deployments/helm/ohlc 
+```
+
+After installation, forward the gRPC service port to your local machine:
+
+```bash
+kubectl port-forward svc/ohlc 8080:8080 -n ohlc
+```
+
+### Testing the Stream Client
+
+Once port forwarding is set up, you can test the service using the provided stream client:
+
+```bash
+# Build and run the stream client
+go build -o stream_client cmd/client/stream_client.go
+./stream_client
+
+# Expected output:
+Connected to OHLC service
+Receiving OHLC data for BTCUSDT, ETHUSDT...
+[BTCUSDT] Open: 35000.00, High: 35100.00, Low: 34900.00, Close: 35050.00
+...
 ```
 
 ## Configuration
