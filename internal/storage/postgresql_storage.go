@@ -11,6 +11,27 @@ import (
 	"github.com/azanium/ohlc/internal/candlestick"
 )
 
+// Custom error types for better error handling
+type StorageError struct {
+	Operation string
+	Err       error
+}
+
+func (e *StorageError) Error() string {
+	return fmt.Sprintf("storage operation '%s' failed: %v", e.Operation, e.Err)
+}
+
+type QueryError struct {
+	Symbol candlestick.Symbol
+	Start  time.Time
+	End    time.Time
+	Err    error
+}
+
+func (e *QueryError) Error() string {
+	return fmt.Sprintf("query for symbol %s from %v to %v failed: %v", e.Symbol, e.Start, e.End, e.Err)
+}
+
 // PostgreSQLStorage implements the candlestick.Storage interface using PostgreSQL
 type PostgreSQLStorage struct {
 	db *gorm.DB
@@ -24,8 +45,9 @@ func (s *PostgreSQLStorage) Store(ohlc *candlestick.OHLC) error {
 
 	err := s.db.Create(ohlc).Error
 	if err != nil {
-		log.Printf("Error storing OHLC: %v", err)
-		return err
+		storageErr := &StorageError{Operation: "store_ohlc", Err: err}
+		log.Printf("Error: %v", storageErr)
+		return storageErr
 	}
 	return nil
 }
@@ -34,7 +56,12 @@ func (s *PostgreSQLStorage) Store(ohlc *candlestick.OHLC) error {
 func (s *PostgreSQLStorage) GetRange(symbol candlestick.Symbol, start, end time.Time) ([]*candlestick.OHLC, error) {
 	var result []*candlestick.OHLC
 	err := s.db.Where("symbol = ? AND open_time >= ? AND close_time <= ?", symbol, start.UnixMilli(), end.UnixMilli()).Order("open_time ASC").Find(&result).Error
-	return result, err
+	if err != nil {
+		queryErr := &QueryError{Symbol: symbol, Start: start, End: end, Err: err}
+		log.Printf("Error: %v", queryErr)
+		return nil, queryErr
+	}
+	return result, nil
 }
 
 // StoreTick persists a tick to the database
@@ -44,8 +71,9 @@ func (s *PostgreSQLStorage) StoreTick(tick *candlestick.Tick) error {
 
 	err := s.db.Model(&candlestick.Tick{}).Create(tick).Error
 	if err != nil {
-		log.Printf("Error storing tick: %v", err)
-		return err
+		storageErr := &StorageError{Operation: "store_tick", Err: err}
+		log.Printf("Error: %v", storageErr)
+		return storageErr
 	}
 	return nil
 }

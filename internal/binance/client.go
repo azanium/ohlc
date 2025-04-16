@@ -15,6 +15,36 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// Custom error types for better error handling
+type ConnectionError struct {
+	Endpoint string
+	Attempt  int
+	Err      error
+}
+
+func (e *ConnectionError) Error() string {
+	return fmt.Sprintf("failed to connect to %s (attempt %d): %v", e.Endpoint, e.Attempt, e.Err)
+}
+
+type SubscriptionError struct {
+	Symbols []candlestick.Symbol
+	Err     error
+}
+
+func (e *SubscriptionError) Error() string {
+	return fmt.Sprintf("failed to subscribe to symbols %v: %v", e.Symbols, e.Err)
+}
+
+type MessageParsingError struct {
+	MessageType string
+	RawMessage  string
+	Err         error
+}
+
+func (e *MessageParsingError) Error() string {
+	return fmt.Sprintf("failed to parse %s message: %v, raw: %s", e.MessageType, e.Err, e.RawMessage)
+}
+
 // Binance WebSocket endpoints for failover
 var websocketEndpoints = []string{
 	"wss://stream.binance.com:9443/ws",
@@ -139,9 +169,10 @@ func (c *Client) Connect(symbols []candlestick.Symbol) error {
 			cancel()
 
 			if err != nil {
-				log.Printf("Connection attempt %d to %s failed: %v", retry+1, wsEndpoint, err)
+				connErr := &ConnectionError{Endpoint: wsEndpoint, Attempt: retry + 1, Err: err}
+				log.Printf("Connection error: %v", connErr)
 				if retry == maxRetries-1 && endpointIndex == len(websocketEndpoints)-1 {
-					return fmt.Errorf("websocket dial error after trying all endpoints: %v", err)
+					return fmt.Errorf("websocket dial error after exhausting all endpoints and retries: %v", err)
 				}
 				continue
 			}
@@ -330,7 +361,8 @@ func (c *Client) handleMessages() {
 
 			var aggTradeMsg AggTradeMessage
 			if err = json.Unmarshal(message, &aggTradeMsg); err != nil {
-				log.Printf("ERROR: Message unmarshal error: %v, raw message: %s", err, string(message))
+				parseErr := &MessageParsingError{MessageType: "aggTrade", RawMessage: string(message), Err: err}
+				log.Printf("ERROR: %v", parseErr)
 				continue
 			}
 

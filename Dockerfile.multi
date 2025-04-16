@@ -1,0 +1,51 @@
+# Build stage
+FROM golang:1.23.3-alpine AS builder
+
+# Add necessary build dependencies
+RUN apk add --no-cache gcc musl-dev
+
+# Set the working directory inside the container
+WORKDIR /build
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies and verify
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download && go mod verify
+
+# Copy the source code and configuration files
+COPY . .
+
+# Build the application with optimizations
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    CGO_ENABLED=0 GOARCH=amd64 GOOS=linux \
+    go build -ldflags="-s -w" -o ohlc ./cmd/ohlc
+
+# Final stage
+FROM alpine:3.19
+
+# Add runtime dependencies if needed
+RUN apk add --no-cache ca-certificates tzdata
+
+# Create a non-root user
+RUN adduser -D -g '' appuser
+
+WORKDIR /app
+
+# Copy the binary and config files from builder
+COPY --from=builder /build/ohlc .
+COPY --from=builder /build/conf /app/conf
+
+# Use non-root user
+USER appuser
+
+# Set environment variables
+ENV POSTGRES_USER=your_user \
+    POSTGRES_PASSWORD=your_password \
+    POSTGRES_DB=your_db \
+    POSTGRES_HOST=your_host \
+    POSTGRES_PORT=5432
+
+# Run the binary
+CMD ["./ohlc"]

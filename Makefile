@@ -47,7 +47,10 @@ all: proto build test
 
 # Run development environment using docker-compose
 run_dev:
-	docker-compose up --build
+	# Clean up old build cache and containers
+	# docker system prune -f
+	# Build and run using multi-stage Dockerfile
+	docker-compose -f docker-compose.yml up --build
 
 integration-test:
 	$(GO) test -v ./internal/service
