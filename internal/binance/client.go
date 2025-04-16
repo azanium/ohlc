@@ -167,8 +167,26 @@ func (c *Client) Connect(symbols []candlestick.Symbol) error {
 			}
 
 			// Start message handling and heartbeat
-			go c.handleMessages()
-			go c.maintainConnection()
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Recovered from panic in handleMessages: %v", r)
+						// Attempt to reconnect
+						if err := c.Connect(symbols); err != nil {
+							log.Printf("Failed to reconnect after panic: %v", err)
+						}
+					}
+				}()
+				c.handleMessages()
+			}()
+			go func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Printf("Recovered from panic in maintainConnection: %v", r)
+					}
+				}()
+				c.maintainConnection()
+			}()
 
 			log.Printf("Successfully connected to %s", wsEndpoint)
 			return nil

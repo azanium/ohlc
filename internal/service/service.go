@@ -76,6 +76,11 @@ func (s *Service) Start(ctx context.Context) error {
 
 	// Process ticks
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("Recovered from panic in tick processing: %v", r)
+			}
+		}()
 		for {
 			select {
 			case <-ctx.Done():
