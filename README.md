@@ -234,8 +234,7 @@ Once port forwarding is set up, you can test the service using the provided stre
 
 ```bash
 # Build and run the stream client
-go build -o stream_client cmd/client/stream_client.go
-./stream_client
+go run cmd/client/stream_client.go
 
 # Expected output:
 Starting client...
