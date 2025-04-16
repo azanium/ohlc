@@ -6,13 +6,13 @@ variable "do_token" {
 variable "do_region" {
   description = "DigitalOcean region for the cluster"
   type        = string
-  default     = "nyc1"
+  default     = "sgp1"
 }
 
 variable "do_k8s_version" {
   description = "Kubernetes version for the cluster"
   type        = string
-  default     = "1.28.2-do.0"
+  default     = "1.32.2-do.0"
 }
 
 variable "do_node_size" {
@@ -48,19 +48,20 @@ variable "storage_size" {
 variable "grpc_port" {
   description = "gRPC port for OHLC service"
   type        = number
-  default     = 50051
+  default     = 8080
 }
 
 variable "postgres_password" {
   description = "PostgreSQL database password"
   type        = string
   sensitive   = true
+  default     = "demo123" # Change this to a secure password and not clear text, use secrets or vault
 }
 
 variable "postgres_user" {
   description = "PostgreSQL database user"
   type        = string
-  default     = "ohlc"
+  default     = "demo"
 }
 
 variable "postgres_db" {

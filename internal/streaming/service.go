@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/azanium/ohlc/internal/candlestick"
-	"github.com/azanium/ohlc/proto"
+	"github.com/azanium/ohlc/internal/proto/proto"
 )
 
 // Service implements the gRPC streaming service

@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/azanium/ohlc/proto"
+	"github.com/azanium/ohlc/internal/proto/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

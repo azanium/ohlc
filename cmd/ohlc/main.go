@@ -12,8 +12,8 @@ import (
 
 	"github.com/azanium/ohlc/conf"
 	"github.com/azanium/ohlc/internal/candlestick"
+	"github.com/azanium/ohlc/internal/proto/proto"
 	"github.com/azanium/ohlc/internal/service"
-	"github.com/azanium/ohlc/proto"
 	"google.golang.org/grpc"
 )
 

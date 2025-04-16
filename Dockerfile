@@ -17,7 +17,7 @@ RUN go mod download
 COPY . .
 
 # Build the Go application
-RUN go build -o ohlc ./cmd/ohlc
+RUN GOARCH=amd64 GOOS=linux go build -o ohlc ./cmd/ohlc
 
 # Set the environment variables for PostgreSQL connection
 ENV POSTGRES_USER=your_user

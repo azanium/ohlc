@@ -1,29 +1,3 @@
-terraform {
-  required_providers {
-    digitalocean = {
-      source  = "digitalocean/digitalocean"
-      version = "~> 2.0"
-    }
-    kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "~> 2.0"
-    }
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.0"
-    }
-  }
-}
-
-variable "do_token" {
-  description = "DigitalOcean API Token"
-  type        = string
-}
-
-provider "digitalocean" {
-  token = var.do_token
-}
-
 resource "digitalocean_kubernetes_cluster" "ohlc" {
   name    = "ohlc-cluster"
   region  = var.do_region
@@ -33,24 +7,6 @@ resource "digitalocean_kubernetes_cluster" "ohlc" {
     name       = "worker-pool"
     size       = var.do_node_size
     node_count = var.replicas
-  }
-}
-
-provider "kubernetes" {
-  host  = digitalocean_kubernetes_cluster.ohlc.endpoint
-  token = digitalocean_kubernetes_cluster.ohlc.kube_config[0].token
-  cluster_ca_certificate = base64decode(
-    digitalocean_kubernetes_cluster.ohlc.kube_config[0].cluster_ca_certificate
-  )
-}
-
-provider "helm" {
-  kubernetes {
-    host  = digitalocean_kubernetes_cluster.ohlc.endpoint
-    token = digitalocean_kubernetes_cluster.ohlc.kube_config[0].token
-    cluster_ca_certificate = base64decode(
-      digitalocean_kubernetes_cluster.ohlc.kube_config[0].cluster_ca_certificate
-    )
   }
 }
 
@@ -125,6 +81,11 @@ resource "kubernetes_deployment" "postgres" {
             }
           }
 
+          env {
+            name  = "PGDATA"
+            value = "/var/lib/postgresql/data/pgdata"
+          }
+
           volume_mount {
             name       = "postgres-storage"
             mount_path = "/var/lib/postgresql/data"
@@ -160,53 +121,53 @@ resource "kubernetes_service" "postgres" {
   }
 }
 
-resource "helm_release" "ohlc" {
-  name       = "ohlc"
-  namespace  = kubernetes_namespace.ohlc.metadata[0].name
-  chart      = "${path.module}/../helm/ohlc"
+# resource "helm_release" "ohlc" {
+#   name       = "ohlc"
+#   namespace  = kubernetes_namespace.ohlc.metadata[0].name
+#   chart      = "${path.module}/../helm/ohlc"
 
-  set {
-    name  = "replicaCount"
-    value = var.replicas
-  }
+#   set {
+#     name  = "replicaCount"
+#     value = var.replicas
+#   }
 
-  set {
-    name  = "image.repository"
-    value = split(":", var.image)[0]
-  }
+#   set {
+#     name  = "image.repository"
+#     value = split(":", var.image)[0]
+#   }
 
-  set {
-    name  = "image.tag"
-    value = split(":", var.image)[1]
-  }
+#   set {
+#     name  = "image.tag"
+#     value = split(":", var.image)[1]
+#   }
 
-  set {
-    name  = "grpc.port"
-    value = var.grpc_port
-  }
+#   set {
+#     name  = "grpc.port"
+#     value = var.grpc_port
+#   }
 
-  set {
-    name  = "postgresql.host"
-    value = "${kubernetes_service.postgres.metadata[0].name}"
-  }
+#   set {
+#     name  = "postgresql.host"
+#     value = "${kubernetes_service.postgres.metadata[0].name}"
+#   }
 
-  set {
-    name  = "postgresql.port"
-    value = var.postgres_port
-  }
+#   set {
+#     name  = "postgresql.port"
+#     value = var.postgres_port
+#   }
 
-  set {
-    name  = "postgresql.database"
-    value = var.postgres_db
-  }
+#   set {
+#     name  = "postgresql.database"
+#     value = var.postgres_db
+#   }
 
-  set {
-    name  = "postgresql.user"
-    value = var.postgres_user
-  }
+#   set {
+#     name  = "postgresql.user"
+#     value = var.postgres_user
+#   }
 
-  set {
-    name  = "postgresql.password"
-    value = var.postgres_password
-  }
-}
+#   set {
+#     name  = "postgresql.password"
+#     value = var.postgres_password
+#   }
+# }
