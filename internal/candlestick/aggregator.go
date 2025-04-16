@@ -1,6 +1,7 @@
 package candlestick
 
 import (
+	"fmt"
 	"log"
 	"sync"
 	"time"
@@ -11,13 +12,15 @@ type aggregator struct {
 	mu       sync.RWMutex
 	current  map[Symbol]*OHLC
 	interval time.Duration
+	storage  Storage
 }
 
 // NewAggregator creates a new OHLC aggregator with the specified interval
-func NewAggregator(interval time.Duration) Aggregator {
+func NewAggregator(interval time.Duration, storage Storage) Aggregator {
 	return &aggregator{
 		current:  make(map[Symbol]*OHLC),
 		interval: interval,
+		storage:  storage,
 	}
 }
 
@@ -25,6 +28,12 @@ func NewAggregator(interval time.Duration) Aggregator {
 func (a *aggregator) Process(tick Tick) (*OHLC, error) {
 	log.Printf("Processing tick: symbol=%s, price=%.2f, quantity=%.2f, timestamp=%s",
 		tick.Symbol, tick.Price, tick.Quantity, tick.Timestamp.Format(time.RFC3339))
+
+	// Store the tick in the database
+	if err := a.storage.StoreTick(&tick); err != nil {
+		log.Printf("Error storing tick: %v", err)
+		return nil, fmt.Errorf("failed to store tick: %v", err)
+	}
 
 	a.mu.Lock()
 	defer a.mu.Unlock()

@@ -37,6 +37,19 @@ func (s *PostgreSQLStorage) GetRange(symbol candlestick.Symbol, start, end time.
 	return result, err
 }
 
+// StoreTick persists a tick to the database
+func (s *PostgreSQLStorage) StoreTick(tick *candlestick.Tick) error {
+	log.Printf("Storing tick: symbol=%s, price=%.2f, quantity=%.2f, timestamp=%s",
+		tick.Symbol, tick.Price, tick.Quantity, tick.Timestamp.Format(time.RFC3339))
+
+	err := s.db.Model(&candlestick.Tick{}).Create(tick).Error
+	if err != nil {
+		log.Printf("Error storing tick: %v", err)
+		return err
+	}
+	return nil
+}
+
 // NewSQLiteStorage creates a new SQLite storage instance
 func NewPostgreSQLStorage(dsn string) (*PostgreSQLStorage, error) {
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
@@ -45,7 +58,7 @@ func NewPostgreSQLStorage(dsn string) (*PostgreSQLStorage, error) {
 	}
 
 	// Auto migrate the schema
-	db.AutoMigrate(&candlestick.OHLC{})
+	db.AutoMigrate(&candlestick.OHLC{}, &candlestick.Tick{})
 
 	return &PostgreSQLStorage{db: db}, nil
 }

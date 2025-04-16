@@ -1,4 +1,4 @@
-CREATE TABLE tick (
+CREATE TABLE ticks (
     id uuid DEFAULT gen_random_uuid(),
     symbol VARCHAR(255),
     price DOUBLE PRECISION,
@@ -12,7 +12,7 @@ CREATE INDEX idx_tick_timestamp ON tick(timestamp);
 CREATE INDEX idx_tick_price ON tick(price);
 CREATE INDEX idx_tick_quantity ON tick(quantity);
 
-CREATE TABLE ohlc (
+CREATE TABLE ohlcs (
     id uuid DEFAULT gen_random_uuid(),
     symbol VARCHAR(255),
     open DOUBLE PRECISION,

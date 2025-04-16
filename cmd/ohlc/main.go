@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -25,6 +26,15 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
+	// Initialize storage with environment variables or defaults
+	host := conf.GetConf().Postgres.Master.Address
+	user := conf.GetConf().Postgres.Master.Username
+	password := conf.GetConf().Postgres.Master.Password
+	dbname := conf.GetConf().Postgres.Master.Database
+	port := conf.GetConf().Postgres.Master.Port
+	sslMode := conf.GetConf().Postgres.Master.SSLMode
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s",
+		host, user, password, dbname, port, sslMode)
 	// Service configuration
 	config := service.Config{
 		Symbols: []candlestick.Symbol{
@@ -33,7 +43,7 @@ func main() {
 			candlestick.PEPEUSDT,
 		},
 		Interval:       10 * time.Second,
-		DBPath:         "ohlc.db",
+		StorageDSN:     dsn,
 		MaxSubscribers: 100,
 		ChannelSize:    1000,
 	}

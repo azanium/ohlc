@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -44,6 +45,21 @@ type KlineMessage struct {
 	} `json:"k"`
 }
 
+// AggTradeMessage represents the aggregated trade websocket message format from Binance
+type AggTradeMessage struct {
+	EventType    string `json:"e"`
+	EventTime    int64  `json:"E"`
+	Symbol       string `json:"s"`
+	ID           int64  `json:"a"`
+	Price        string `json:"p"`
+	Quantity     string `json:"q"`
+	FirstID      int64  `json:"f"`
+	LastID       int64  `json:"l"`
+	Timestamp    int64  `json:"T"`
+	IsBuyerMaker bool   `json:"m"`
+	IsBestMatch  bool   `json:"M"`
+}
+
 // Client handles communication with Binance API through WebSocket
 type Client struct {
 	conn      *websocket.Conn
@@ -69,8 +85,8 @@ func (c *Client) Connect(symbols []candlestick.Symbol) error {
 	params := make([]string, len(symbols))
 	for i, symbol := range symbols {
 		// Convert symbol to lowercase as Binance requires
-		symbolStr := string(symbol)
-		params[i] = fmt.Sprintf("%s@kline_1m", symbolStr)
+		symbolStr := strings.ToLower(string(symbol))
+		params[i] = fmt.Sprintf("%s@aggTrade", symbolStr)
 	}
 
 	log.Printf("Subscribing to streams: %v", params)
@@ -172,9 +188,19 @@ func (c *Client) Subscribe(symbol candlestick.Symbol, ch chan<- candlestick.Tick
 
 // Close closes the websocket connection and stops all handlers
 func (c *Client) Close() error {
+	// Signal all goroutines to stop
 	c.cancelCtx()
-	if c.conn != nil {
-		return c.conn.Close()
+
+	// Safely close the connection
+	c.mu.Lock()
+	conn := c.conn
+	c.conn = nil
+	c.mu.Unlock()
+
+	// Close the connection outside the lock
+	if conn != nil {
+		log.Printf("INFO: Closing WebSocket connection")
+		return conn.Close()
 	}
 	return nil
 }
@@ -187,10 +213,22 @@ func (c *Client) maintainConnection() {
 	for {
 		select {
 		case <-c.ctx.Done():
+			log.Printf("INFO: Stopping connection maintenance due to context cancellation")
 			return
 		case <-pingTicker.C:
-			if err := c.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second)); err != nil {
-				log.Printf("ping error: %v", err)
+			// Safely access the connection
+			c.mu.RLock()
+			conn := c.conn
+			c.mu.RUnlock()
+
+			if conn == nil {
+				log.Printf("WARNING: Cannot send ping - WebSocket connection is nil")
+				go c.reconnect()
+				return
+			}
+
+			if err := conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second)); err != nil {
+				log.Printf("ERROR: Ping error: %v", err)
 				// Trigger reconnection
 				go c.reconnect()
 				return
@@ -204,10 +242,10 @@ func (c *Client) reconnect() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	// Close existing connection
-	if c.conn != nil {
-		c.conn.Close()
-	}
+	// Store current connection to close it after releasing the lock
+	oldConn := c.conn
+	// Set connection to nil to prevent other goroutines from using it
+	c.conn = nil
 
 	// Get current symbols
 	var symbols []candlestick.Symbol
@@ -215,9 +253,22 @@ func (c *Client) reconnect() {
 		symbols = append(symbols, symbol)
 	}
 
+	// Release the lock before attempting to reconnect
+	c.mu.Unlock()
+
+	// Close the old connection outside the lock to prevent deadlocks
+	if oldConn != nil {
+		// Ignore close errors as the connection might already be closed
+		_ = oldConn.Close()
+		log.Printf("INFO: Closed old WebSocket connection")
+	}
+
+	// Reacquire the lock for the reconnection attempt
+	c.mu.Lock()
+
 	// Attempt to reconnect
 	if err := c.Connect(symbols); err != nil {
-		log.Printf("reconnection failed: %v", err)
+		log.Printf("ERROR: Reconnection failed: %v", err)
 	}
 }
 
@@ -229,7 +280,19 @@ func (c *Client) handleMessages() {
 			log.Printf("INFO: Stopping message handler due to context cancellation")
 			return
 		default:
-			_, message, err := c.conn.ReadMessage()
+			// Check if connection is nil before attempting to read
+			c.mu.RLock()
+			conn := c.conn
+			c.mu.RUnlock()
+
+			if conn == nil {
+				log.Printf("ERROR: WebSocket connection is nil, waiting before reconnect attempt")
+				time.Sleep(time.Second)
+				go c.reconnect()
+				return
+			}
+
+			_, message, err := conn.ReadMessage()
 			if err != nil {
 				log.Printf("ERROR: WebSocket read error: %v", err)
 				go c.reconnect()
@@ -247,41 +310,41 @@ func (c *Client) handleMessages() {
 				}
 			}
 
-			var klineMsg KlineMessage
-			if err = json.Unmarshal(message, &klineMsg); err != nil {
+			var aggTradeMsg AggTradeMessage
+			if err = json.Unmarshal(message, &aggTradeMsg); err != nil {
 				log.Printf("ERROR: Message unmarshal error: %v, raw message: %s", err, string(message))
 				continue
 			}
 
-			// Skip non-kline messages
-			if klineMsg.EventType != "kline" {
-				log.Printf("DEBUG: Skipping non-kline message type: %s", klineMsg.EventType)
+			// Skip non-aggTrade messages
+			if aggTradeMsg.EventType != "aggTrade" {
+				log.Printf("DEBUG: Skipping non-aggTrade message type: %s", aggTradeMsg.EventType)
 				continue
 			}
 
 			// Convert message to Tick with error handling
-			symbol := candlestick.Symbol(klineMsg.Symbol)
-			price, err := strconv.ParseFloat(klineMsg.Kline.Close, 64)
+			symbol := candlestick.Symbol(aggTradeMsg.Symbol)
+			price, err := strconv.ParseFloat(aggTradeMsg.Price, 64)
 			if err != nil {
 				log.Printf("ERROR: Failed parsing price for %s: %v", symbol, err)
 				continue
 			}
 
-			volume, err := strconv.ParseFloat(klineMsg.Kline.Volume, 64)
+			quantity, err := strconv.ParseFloat(aggTradeMsg.Quantity, 64)
 			if err != nil {
-				log.Printf("ERROR: Failed parsing volume for %s: %v", symbol, err)
+				log.Printf("ERROR: Failed parsing quantity for %s: %v", symbol, err)
 				continue
 			}
 
 			tick := candlestick.Tick{
 				Symbol:    symbol,
 				Price:     price,
-				Quantity:  volume,
-				Timestamp: time.Unix(0, klineMsg.Kline.EndTime*int64(time.Millisecond)),
+				Quantity:  quantity,
+				Timestamp: time.Unix(0, aggTradeMsg.Timestamp*int64(time.Millisecond)),
 			}
 
-			log.Printf("INFO: Created tick for %s: price=%.2f volume=%.2f timestamp=%s",
-				symbol, price, volume, tick.Timestamp.Format(time.RFC3339))
+			log.Printf("INFO: Created tick for %s: price=%.2f quantity=%.2f timestamp=%s",
+				symbol, price, quantity, tick.Timestamp.Format(time.RFC3339))
 
 			// Distribute tick to handlers
 			c.mu.RLock()

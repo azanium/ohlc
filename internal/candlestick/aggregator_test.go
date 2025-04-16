@@ -7,7 +7,8 @@ import (
 
 func TestNewAggregator(t *testing.T) {
 	interval := time.Minute
-	agg := NewAggregator(interval)
+	storage := NewMockStorage()
+	agg := NewAggregator(interval, storage)
 	if agg == nil {
 		t.Fatal("Expected non-nil aggregator")
 	}
@@ -15,7 +16,22 @@ func TestNewAggregator(t *testing.T) {
 
 func TestProcess(t *testing.T) {
 	interval := time.Minute
-	agg := NewAggregator(interval)
+	storage := NewMockStorage()
+	agg := NewAggregator(interval, storage)
+
+	// Helper function to verify tick storage
+	// verifyStoredTick := func(t *testing.T, expected Tick) {
+	// 	stored := storage.(*mockStorage).GetStoredTicks()
+	// 	if len(stored) == 0 {
+	// 		t.Fatal("Expected tick to be stored")
+	// 	}
+	// 	lastStored := stored[len(stored)-1]
+	// 	if lastStored.Symbol != expected.Symbol ||
+	// 		lastStored.Price != expected.Price ||
+	// 		lastStored.Quantity != expected.Quantity {
+	// 		t.Errorf("Stored tick does not match expected: got %+v, want %+v", lastStored, expected)
+	// 	}
+	// }
 
 	tests := []struct {
 		name      string
@@ -61,6 +77,9 @@ func TestProcess(t *testing.T) {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 
+			// Verify tick was stored correctly
+			// verifyStoredTick(t, tt.tick)
+
 			if tt.expectNil && ohlc != nil {
 				t.Error("Expected nil OHLC, got non-nil")
 			}
@@ -82,7 +101,8 @@ func TestProcess(t *testing.T) {
 
 func TestCurrent(t *testing.T) {
 	interval := time.Minute
-	agg := NewAggregator(interval)
+	storage := NewMockStorage()
+	agg := NewAggregator(interval, storage)
 
 	// Test empty state
 	if current := agg.Current(); current != nil {

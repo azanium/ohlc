@@ -45,6 +45,8 @@ type Aggregator interface {
 type Storage interface {
 	// Store persists an OHLC candlestick
 	Store(ohlc *OHLC) error
+	// StoreTick persists a tick to the database
+	StoreTick(tick *Tick) error
 	// GetRange retrieves OHLC candlesticks for a symbol within a time range
 	GetRange(symbol Symbol, start, end time.Time) ([]*OHLC, error)
 }

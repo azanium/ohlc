@@ -6,7 +6,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/azanium/ohlc/conf"
 	"github.com/azanium/ohlc/internal/binance"
 	"github.com/azanium/ohlc/internal/candlestick"
 	"github.com/azanium/ohlc/internal/storage"
@@ -17,9 +16,9 @@ import (
 type Config struct {
 	Symbols        []candlestick.Symbol
 	Interval       time.Duration
-	DBPath         string
 	MaxSubscribers int
 	ChannelSize    int
+	StorageDSN     string
 }
 
 // Service coordinates the OHLC data processing pipeline
@@ -40,22 +39,13 @@ func (s *Service) SetClient(client binance.BinanceClient) {
 func New(ctx context.Context, config Config) (*Service, error) {
 	// Create components
 	client := binance.NewClient(ctx)
-	aggregator := candlestick.NewAggregator(config.Interval)
 
-	// Initialize storage with environment variables or defaults
-	host := conf.GetConf().Postgres.Master.Address
-	user := conf.GetConf().Postgres.Master.Username
-	password := conf.GetConf().Postgres.Master.Password
-	dbname := conf.GetConf().Postgres.Master.Database
-	port := conf.GetConf().Postgres.Master.Port
-	sslMode := conf.GetConf().Postgres.Master.SSLMode
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%d sslmode=%s",
-		host, user, password, dbname, port, sslMode)
-
-	storage, err := storage.NewPostgreSQLStorage(dsn)
+	storage, err := storage.NewPostgreSQLStorage(config.StorageDSN)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize storage: %v", err)
 	}
+
+	aggregator := candlestick.NewAggregator(config.Interval, storage)
 
 	// Initialize streaming service
 	streamer := streaming.NewService(config.MaxSubscribers, config.ChannelSize)
