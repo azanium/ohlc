@@ -13,7 +13,7 @@ build:
 	mkdir -p $(BIN_DIR)
 	$(GO) build -o $(BIN_DIR)/$(BIN_NAME) ./cmd/ohlc
 
-# Build the application in Docker
+.
 build_docker:
 	docker build -t $(DOCKER_NAME) .
 	docker push $(DOCKER_NAME)

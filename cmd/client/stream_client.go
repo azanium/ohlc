@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"os"
 	"time"
 
 	"github.com/azanium/ohlc/internal/proto/proto"
@@ -15,8 +16,14 @@ import (
 func main() {
 	log.Println("Starting client...")
 
+	// Get service address from environment or use default
+	serviceAddr := "localhost:8080" // Default address when using kubectl port-forward
+	if envAddr := os.Getenv("OHLC_SERVICE_ADDR"); envAddr != "" {
+		serviceAddr = envAddr
+	}
+
 	// Connect to the gRPC server
-	conn, err := grpc.Dial("localhost:8080", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(serviceAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.Fatalf("Failed to connect: %v", err)
 	}

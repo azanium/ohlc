@@ -1,63 +1,24 @@
 # OHLC Trading Chart Service
 
-## Prerequisites
+A real-time OHLC (Open, High, Low, Close) trading chart service that streams cryptocurrency price data using gRPC. The service aggregates price data from Binance WebSocket feeds and provides OHLC candlestick data to clients through a streaming API.
 
-- Go 1.21 or later
-- Docker
-- Terraform
-- DigitalOcean account and API token
-- Protocol Buffers compiler
-- SQLite3
-- kubectl
-- doctl (DigitalOcean CLI)
+## Features
 
-## Local Development Setup
+- Real-time OHLC data streaming via gRPC
+- Support for multiple cryptocurrency pairs (BTCUSDT, ETHUSDT, PEPEUSDT)
+- Configurable candlestick intervals
+- PostgreSQL storage for historical data
+- Kubernetes-ready deployment
+- Graceful shutdown handling
 
-### Getting Started
+## Architecture
 
-1. Clone the repository and navigate to the project directory
+The service consists of several components:
 
-2. Start the development environment (PostgreSQL and OHLC service):
-
-   ```bash
-   make run_dev
-   ```
-
-   This command will:
-   - Build and start PostgreSQL container
-   - Initialize the database with required schema
-   - Build and start the OHLC service
-
-3. Test the streaming functionality using the stream client:
-
-   ```bash
-   go run cmd/client/stream_client.go
-   ```
-
-   The stream client will connect to the OHLC service and start receiving real-time candlestick data.
-
-   And you will see the candlestick data being streamed in real-time.
-
-```bash
-   [ETHUSDT] 16:52:00 - Open: 1570.27, High: 1571.34, Low: 1569.35, Close: 1570.89, Volume: 123.90 (Period: 16:52:00 - 16:53:00)
-   [BTCUSDT] 16:52:00 - Open: 83714.68, High: 83714.68, Low: 83674.00, Close: 83695.09, Volume: 5.01 (Period: 16:52:00 - 16:53:00)
-   [BTCUSDT] 16:53:00 - Open: 83695.10, High: 83696.66, Low: 83664.04, Close: 83664.05, Volume: 6.37 (Period: 16:53:00 - 16:54:00) (Interval: 1m0s)
-   [ETHUSDT] 16:53:00 - Open: 1570.89, High: 1571.50, Low: 1570.75, Close: 1570.82, Volume: 120.54 (Period: 16:53:00 - 16:54:00) (Interval: 1m0s)
-```
-
-### Troubleshooting
-
-- If the service fails to connect to PostgreSQL, ensure the database is healthy:
-
-  ```bash
-  docker-compose ps
-  ```
-
-- Check service logs:
-
-  ```bash
-  docker-compose logs ohlc
-  ```
+- **Binance WebSocket Client**: Connects to Binance's WebSocket API to receive real-time trade data
+- **Candlestick Aggregator**: Processes trade data into OHLC candlesticks
+- **Storage Layer**: Persists OHLC data in PostgreSQL
+- **gRPC Streaming Service**: Provides real-time OHLC data to clients
 
 ## Project Structure
 
@@ -86,120 +47,156 @@
 └── proto/                # Protocol buffer definitions
 ```
 
-## Deployment Guide
+## Prerequisites
 
-### 1. Build and Push Docker Image
+- Go 1.23.3 or later
+- PostgreSQL 13 or later
+- Docker (for containerized deployment)
+- Docker Compose (for local development)
+- Kubernetes (for production deployment)
+- Helm (for Kubernetes deployment)
+- Terraform (for infrastructure as code)
+- DigitalOcean account and API token
+- doctl (DigitalOcean CLI)
+- Protocol Buffers compiler
+- kubectl (optional)
 
-1. Build the Docker image:
+## Local Development Setup
+
+1. Clone the repository
+2. Install dependencies:
 
    ```bash
-   docker build -t your-registry/ohlc:latest .
+   go mod download
    ```
 
-2. Push the image to your container registry:
+3. Set up PostgreSQL database:
 
    ```bash
-   docker push your-registry/ohlc:latest
+   psql -U postgres -f db/schema.sql
    ```
 
-### 2. Configure DigitalOcean Access
+4. Configure the service:
+   - Copy `conf/dev/conf.yaml` to your working directory
+   - Adjust database and server settings as needed
 
-1. Install doctl if not already installed:
+5. Start the service:
 
    ```bash
-   brew install doctl  # For macOS
+   make run_dev
    ```
 
-2. Authenticate with DigitalOcean:
+## Running the Client
+
+The streaming client can be run with:
+
+```bash
+# Default connection to localhost:8080
+go run cmd/client/stream_client.go
+
+# Custom service address
+OHLC_SERVICE_ADDR=localhost:8080 go run cmd/client/stream_client.go
+```
+
+## API Documentation
+
+### gRPC Service
+
+The service provides a streaming API defined in `proto/ohlc.proto`:
+
+```protobuf
+service OHLCService {
+  rpc StreamOHLC(SubscribeRequest) returns (stream OHLC) {}
+}
+```
+
+#### Subscribe Request
+
+```protobuf
+message SubscribeRequest {
+  repeated string symbols = 1;
+}
+```
+
+#### OHLC Data
+
+```protobuf
+message OHLC {
+  string symbol = 1;
+  double open = 2;
+  double high = 3;
+  double low = 4;
+  double close = 5;
+  double volume = 6;
+  int64 open_time = 7;
+  int64 close_time = 8;
+}
+```
+
+## Deployment
+
+### Setup Digital Ocean Token
+
+```bash
+export DO_TOKEN=<your_digital_ocean_token>
+```
+
+### Docker
+
+Build and run using Docker:
+
+```bash
+docker build -t your-repo/ohlc .
+docker push your-repo/ohlc:latest
+```
+
+### Infrastructure Setup with Terraform
+
+1. Install Terraform:
 
    ```bash
-   doctl auth init
-   ```
+   # For macOS using Homebrew
+   brew install terraform
 
-3. Export your DigitalOcean API token:
-
-   ```bash
-   export DO_TOKEN=your_digitalocean_api_token
-   ```
-
-### 3. Deploy with Terraform
-
-1. Navigate to the Terraform directory:
-
-   ```bash
-   cd deployments/terraform
+   # For Linux
+   wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor | sudo tee /usr/share/keyrings/hashicorp-archive-keyring.gpg
+   echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+   sudo apt-get update && sudo apt-get install terraform
    ```
 
 2. Initialize Terraform:
 
    ```bash
+   cd deployments/terraform
    terraform init
    ```
 
-3. Review the deployment plan:
+3. Review and apply the infrastructure:
 
    ```bash
    terraform plan -var="do_token=$DO_TOKEN" \
-     -var="image=your-registry/ohlc:latest" \
-     -var="postgres_password=your-secure-password"
-   ```
-
-4. Apply the configuration:
-
-   ```bash
+      -var="image=azanium/ohlc:latest" \
+      -var="postgres_password=demo123"
    terraform apply -var="do_token=$DO_TOKEN" \
-     -var="image=your-registry/ohlc:latest" \
-     -var="postgres_password=your-secure-password"
+      -var="image=azanium/ohlc:latest" \
+      -var="postgres_password=demo123"
    ```
 
-### 4. Configure Kubernetes Access
+### Kubernetes
 
-1. Configure kubectl to use the new cluster:
-
-   ```bash
-   doctl kubernetes cluster kubeconfig save ohlc-cluster
-   ```
-
-2. Verify the deployment:
-
-   ```bash
-   kubectl get pods -n ohlc
-   kubectl get services -n ohlc
-   ```
-
-### 5. Testing the Service
-
-1. Port-forward the gRPC service:
-
-   ```bash
-   kubectl port-forward service/ohlc-grpc 50051:50051 -n ohlc
-   ```
-
-2. Use a gRPC client (like grpcurl) to test the service:
-
-   ```bash
-   grpcurl -plaintext localhost:50051 ohlc.OHLC/GetCandlesticks
-   ```
-
-### 6. Cleanup
-
-To destroy the infrastructure when no longer needed:
+Deploy to Kubernetes using Helm:
 
 ```bash
-terraform destroy -var="do_token=$DO_TOKEN"
+helm upgrade --install ohlc-service deployments/helm/ohlc
 ```
 
 ## Configuration
 
-The following variables can be customized in `terraform.tfvars` or via command line:
+The service can be configured through environment variables or configuration files:
 
-- `do_region`: DigitalOcean region (default: "nyc1")
-- `do_k8s_version`: Kubernetes version (default: "1.28.2-do.0")
-- `do_node_size`: Node size (default: "s-2vcpu-4gb")
-- `replicas`: Number of service replicas (default: 1)
-- `postgres_user`: PostgreSQL username (default: "ohlc")
-- `postgres_db`: PostgreSQL database name (default: "ohlc")
-- `grpc_port`: gRPC service port (default: 50051)
+- `OHLC_SERVICE_ADDR`: gRPC service address (default: ":8080")
+- `POSTGRES_*`: Database connection settings
+- See `conf/dev/conf.yaml` for all available options
 
 ## Monitoring
 
@@ -218,3 +215,7 @@ kubectl exec -it deployment/postgres -n ohlc -- psql -U ohlc -d ohlc
 For support, bug reports, or contributions:
 
 syuaibi [at] gmail [dot] com
+
+## License
+
+MIT License
