@@ -233,7 +233,7 @@ kubectl port-forward svc/ohlc 8080:8080 -n ohlc
 Once port forwarding is set up, you can test the service using the provided stream client:
 
 ```bash
-# Build and run the stream client
+# Run the stream client
 go run cmd/client/stream_client.go
 
 # Expected output:
