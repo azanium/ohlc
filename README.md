@@ -238,9 +238,14 @@ go build -o stream_client cmd/client/stream_client.go
 ./stream_client
 
 # Expected output:
-Connected to OHLC service
-Receiving OHLC data for BTCUSDT, ETHUSDT...
-[BTCUSDT] Open: 35000.00, High: 35100.00, Low: 34900.00, Close: 35050.00
+Starting client...
+[BTCUSDT] 22:23:00 - Open: 84960.48, High: 84981.41, Low: 84956.83, Close: 84980.47, Volume: 2.81 (Period: 22:23:00 - 22:24:00)
+[ETHUSDT] 22:23:00 - Open: 1595.01, High: 1595.80, Low: 1594.64, Close: 1595.80, Volume: 40.40 (Period: 22:23:00 - 22:24:00)
+[PEPEUSDT] 22:23:00 - Open: 0.00, High: 0.00, Low: 0.00, Close: 0.00, Volume: 24435830.00 (Period: 22:23:00 - 22:24:00)
+[BTCUSDT] 22:24:00 - Open: 84980.47, High: 85094.26, Low: 84980.47, Close: 85037.73, Volume: 57.77 (Period: 22:24:00 - 22:25:00) (Interval: 1m0s)
+[PEPEUSDT] 22:24:00 - Open: 0.00, High: 0.00, Low: 0.00, Close: 0.00, Volume: 272957043570.00 (Period: 22:24:00 - 22:25:00) (Interval: 1m0s)
+[ETHUSDT] 22:24:00 - Open: 1595.80, High: 1600.93, Low: 1595.80, Close: 1599.19, Volume: 1441.81 (Period: 22:24:00 - 22:25:00) (Interval: 1m0s)
+[ETHUSDT] 22:25:00 - Open: 1599.19, High: 1613.66, Low: 1599.00, Close: 1608.57, Volume: 10371.53 (Period: 22:25:00 - 22:26:00) (Interval: 1m0s)
 ...
 ```
 
