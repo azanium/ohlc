@@ -2,6 +2,28 @@
 
 A real-time OHLC (Open, High, Low, Close) trading chart service that streams cryptocurrency price data using gRPC. The service aggregates price data from Binance WebSocket feeds and provides OHLC candlestick data to clients through a streaming API.
 
+## Table of Contents
+
+- [Features](#features)
+- [Architecture](#architecture)
+- [Project Structure](#project-structure)
+- [Prerequisites](#prerequisites)
+- [Local Development Setup](#local-development-setup)
+- [Running the Client](#running-the-client)
+- [API Documentation](#api-documentation)
+  - [gRPC Service](#grpc-service)
+  - [Subscribe Request](#subscribe-request)
+  - [OHLC Data](#ohlc-data)
+- [Deployment](#deployment)
+  - [Setup Digital Ocean Token](#setup-digital-ocean-token)
+  - [Docker](#docker)
+  - [Kubernetes Infrastructure Setup with Terraform](#kubernetes-infrastructure-setup-with-terraform)
+  - [Install Service to Kubernetes Cluster](#install-service-to-kubernetes-cluster)
+- [Configuration](#configuration)
+- [Monitoring](#monitoring)
+- [Contact](#contact)
+- [License](#license)
+
 ## Features
 
 - Real-time OHLC data streaming via gRPC
@@ -150,7 +172,7 @@ docker build -t your-repo/ohlc .
 docker push your-repo/ohlc:latest
 ```
 
-### Infrastructure Setup with Terraform
+### Kubernetes Infrastructure Setup with Terraform
 
 1. Install Terraform:
 
@@ -182,12 +204,13 @@ docker push your-repo/ohlc:latest
       -var="postgres_password=demo123"
    ```
 
-### Kubernetes
+### Install Service to Kubernetes Cluster
 
 Deploy to Kubernetes using Helm:
+Go to the project root directory!
 
 ```bash
-helm upgrade --install ohlc-service deployments/helm/ohlc
+helm upgrade --install ohlc ./deployments/helm/ohlc
 ```
 
 ## Configuration
