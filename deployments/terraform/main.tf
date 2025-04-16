@@ -121,53 +121,53 @@ resource "kubernetes_service" "postgres" {
   }
 }
 
-# resource "helm_release" "ohlc" {
-#   name       = "ohlc"
-#   namespace  = kubernetes_namespace.ohlc.metadata[0].name
-#   chart      = "${path.module}/../helm/ohlc"
+resource "helm_release" "ohlc" {
+  name       = "ohlc"
+  namespace  = kubernetes_namespace.ohlc.metadata[0].name
+  chart      = "${path.module}/../helm/ohlc"
 
-#   set {
-#     name  = "replicaCount"
-#     value = var.replicas
-#   }
+  set {
+    name  = "replicaCount"
+    value = var.replicas
+  }
 
-#   set {
-#     name  = "image.repository"
-#     value = split(":", var.image)[0]
-#   }
+  set {
+    name  = "image.repository"
+    value = split(":", var.image)[0]
+  }
 
-#   set {
-#     name  = "image.tag"
-#     value = split(":", var.image)[1]
-#   }
+  set {
+    name  = "image.tag"
+    value = split(":", var.image)[1]
+  }
 
-#   set {
-#     name  = "grpc.port"
-#     value = var.grpc_port
-#   }
+  set {
+    name  = "grpc.port"
+    value = var.grpc_port
+  }
 
-#   set {
-#     name  = "postgresql.host"
-#     value = "${kubernetes_service.postgres.metadata[0].name}"
-#   }
+  set {
+    name  = "postgresql.host"
+    value = "${kubernetes_service.postgres.metadata[0].name}"
+  }
 
-#   set {
-#     name  = "postgresql.port"
-#     value = var.postgres_port
-#   }
+  set {
+    name  = "postgresql.port"
+    value = var.postgres_port
+  }
 
-#   set {
-#     name  = "postgresql.database"
-#     value = var.postgres_db
-#   }
+  set {
+    name  = "postgresql.database"
+    value = var.postgres_db
+  }
 
-#   set {
-#     name  = "postgresql.user"
-#     value = var.postgres_user
-#   }
+  set {
+    name  = "postgresql.user"
+    value = var.postgres_user
+  }
 
-#   set {
-#     name  = "postgresql.password"
-#     value = var.postgres_password
-#   }
-# }
+  set {
+    name  = "postgresql.password"
+    value = var.postgres_password
+  }
+}
